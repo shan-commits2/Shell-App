@@ -10,7 +10,7 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.styles import Style
 
-UseCurrentCustomCommand = True # Set to True to use local commands, False to fetch from remote
+UseCurrentCustomCommand = False # Set to True to use local commands, False to fetch from remote
 LOCAL_COMMANDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Commands")
 REMOTE_COMMANDS_URL = "https://github.com/shan-commits2/Shell-App/tree/main/Commands"
 

@@ -9,8 +9,9 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.styles import Style
+from prompt_toolkit.key_binding import KeyBindings
 
-UseCurrentCustomCommand = False # Set to True to use local commands, False to fetch from remote
+UseCurrentCustomCommand = False  # Set to True to use local commands, False to fetch from remote
 LOCAL_COMMANDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Commands")
 REMOTE_COMMANDS_URL = "https://github.com/shan-commits2/Shell-App/tree/main/Commands"
 
@@ -18,7 +19,8 @@ def get_custom_commands():
     if UseCurrentCustomCommand:
         if not os.path.isdir(LOCAL_COMMANDS_DIR):
             return []
-        return [f[:-3] for f in os.listdir(LOCAL_COMMANDS_DIR) if f.endswith(".py") and os.path.isfile(os.path.join(LOCAL_COMMANDS_DIR, f))]
+        return [f[:-3] for f in os.listdir(LOCAL_COMMANDS_DIR)
+                if f.endswith(".py") and os.path.isfile(os.path.join(LOCAL_COMMANDS_DIR, f))]
     else:
         try:
             with urllib.request.urlopen(REMOTE_COMMANDS_URL) as response:
@@ -37,7 +39,8 @@ def get_custom_commands():
 
 def run_real_command(cmd):
     try:
-        result = subprocess.run(cmd, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        result = subprocess.run(cmd, shell=True, check=True, text=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         print(result.stdout)
     except subprocess.CalledProcessError as e:
         print(f"\n[!] Command failed:\n{e.output}")
@@ -86,8 +89,21 @@ def change_directory(args):
 def main():
     print_header()
     history = InMemoryHistory()
-    session = PromptSession(history=history)
     style = Style.from_dict({'prompt': 'ansicyan bold'})
+
+    bindings = KeyBindings()
+
+    @bindings.add('enter')
+    def _(event):
+        buffer = event.current_buffer
+        if buffer.validate():
+            buffer.validate_and_handle()
+
+    @bindings.add('s-enter')
+    def _(event):
+        event.current_buffer.insert_text('\n')
+
+    session = PromptSession(history=history, key_bindings=bindings)
 
     custom_commands = get_custom_commands()
     all_commands = sorted(set(custom_commands + ['cd', 'exit']))
@@ -95,7 +111,13 @@ def main():
 
     while True:
         try:
-            user_input = session.prompt(HTML('<prompt>$ Sudo: </prompt>'), completer=completer, style=style).strip()
+            user_input = session.prompt(
+                HTML('<prompt>$ Sudo: </prompt>'),
+                completer=completer,
+                style=style,
+                multiline=True,
+                prompt_continuation="... "
+            ).strip()
         except (EOFError, KeyboardInterrupt):
             print("\n[Exiting...]")
             break
